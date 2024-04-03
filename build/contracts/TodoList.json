@@ -23,7 +23,7 @@
   "sourceMap": "26:52:1:-;;;74:1;50:25;;26:52;8:9:-1;5:2;;;30:1;27;20:12;5:2;26:52:1;;;;;;;",
   "deployedSourceMap": "26:52:1:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;26:52:1;;;;;;;;;;;;;;;;;;;50:25;;;:::i;:::-;;;;;;;;;;;;;;;;;;;;:::o",
   "source": "pragma solidity ^0.5.16;\n\ncontract TodoList {\n    uint public taskCount = 0;\n}",
-  "sourcePath": "/Users/trevor/Desktop/BlockchainProject/votingSystem/contracts/TodoList.sol",
+  "sourcePath": "/Users/rileythompson/blockchainClass/blockchainproject/contracts/TodoList.sol",
   "ast": {
     "absolutePath": "project:/contracts/TodoList.sol",
     "exportedSymbols": {
@@ -205,9 +205,16 @@
     "name": "solc",
     "version": "0.5.16+commit.9c3226ce.Emscripten.clang"
   },
-  "networks": {},
+  "networks": {
+    "5777": {
+      "events": {},
+      "links": {},
+      "address": "0x35b65BBFE46992627413b50C87A914af838DfE42",
+      "transactionHash": "0x85c816c26a9c98557ac857ea414e07205f8253de7a675ee8ac9df2b6756bc89f"
+    }
+  },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-04-01T19:19:04.325Z",
+  "updatedAt": "2024-04-03T20:37:40.474Z",
   "devdoc": {
     "methods": {}
   },
