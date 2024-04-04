@@ -1,63 +1,89 @@
-// app.js
-const contractAddress = '0xA31C31d3027cfcFC0b249d68C425386D2Af4ccb9';
+const contractAddress = '0x54E9DFD9fF276B30ce82e8A7797236DEb2645aDA';
+
+let contract; // Global contract instance
+let signer; // Global signer
 
 document.addEventListener('DOMContentLoaded', async () => {
-    if (typeof ethereum !== 'undefined') {
-        ethereum.on('accountsChanged', function (accounts) {
-            console.log('Account changed:', accounts[0]);
-            window.location.reload(); // Reload the interface with the first account
-        });
-    }
-    await init();
+    await initWeb3();
+    setupEventListeners();
 });
 
-async function init() {
+async function initWeb3() {
     if (typeof ethereum !== 'undefined') {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        await ethereum.request({ method: 'eth_requestAccounts' });
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, votingABI, signer);
-
-        document.getElementById('voteButton').addEventListener('click', async () => {
-            const selectedCandidateId = parseInt(document.getElementById('voteOption').value);
-            await voteForCandidate(selectedCandidateId, contract);
-        });
-
-        await displayResults(contract); // Display results at initialization
+        signer = provider.getSigner();
+        contract = new ethers.Contract(contractAddress, votingABI, signer);
     } else {
         console.error("Ethereum object doesn't exist!");
     }
 }
 
-async function voteForCandidate(candidateId, contract) {
-  console.log("Attempting to cast vote for candidate ID:", candidateId);
-  try {
-      const tx = await contract.vote(candidateId);
-      await tx.wait();
-      console.log('Vote cast successfully.');
-      await displayResults(contract);
-  } catch (error) {
-      console.error('Error casting vote:', error);
-      alert('Failed to cast vote.');
-  }
+async function setupEventListeners() {
+    document.getElementById('voteButton').addEventListener('click', async () => {
+        const selectedCandidateId = parseInt(document.getElementById('voteOption').value);
+        await voteForCandidate(selectedCandidateId);
+    });
+
+    document.getElementById('addCandidateButton').addEventListener('click', async () => {
+        const candidateName = document.getElementById('newCandidateName').value.trim();
+        if (candidateName) {
+            await addCandidate(candidateName);
+        } else {
+            alert("Please enter a candidate name.");
+        }
+    });
+
+    // Call displayResults at the end of init to ensure contract is set up
+    if (contract) await displayResults();
 }
 
-// Define the displayResults function
-async function displayResults(contract) {
+async function addCandidate(name) {
+    try {
+        const addCandidateTx = await contract.addCandidate(name);
+        await addCandidateTx.wait();
+        console.log(`${name} added as a candidate.`);
+        await displayResults(); // Refresh the candidates list
+    } catch (error) {
+        console.error('Error adding candidate:', error);
+        alert('Failed to add candidate.');
+    }
+}
+
+async function voteForCandidate(candidateId) {
+    try {
+        const voteTx = await contract.vote(candidateId);
+        await voteTx.wait();
+        console.log('Vote cast successfully.');
+        await displayResults(); // Refresh the results after voting
+    } catch (error) {
+        console.error('Error casting vote:', error);
+        alert('Failed to cast vote.');
+    }
+}
+
+async function displayResults() {
   const resultsElement = document.getElementById('votingResults');
+  const voteOptionElement = document.getElementById('voteOption'); // Get the dropdown menu element
   resultsElement.innerHTML = ''; // Clear previous results
+  voteOptionElement.innerHTML = ''; // Clear existing options in the dropdown
 
   const candidatesCount = await contract.candidatesCount();
-  console.log("Candidates Count:", candidatesCount.toNumber());
 
-  for (let i = 1; i <= candidatesCount.toNumber(); i++) {
+  for (let i = 1; i <= candidatesCount; i++) {
       const candidate = await contract.candidates(i);
-      console.log(`Candidate ${i}:`, candidate);
-      const listItem = document.createElement('li');
-      listItem.textContent = `${candidate.name}: ${candidate.voteCount.toNumber()} votes`;
-      resultsElement.appendChild(listItem);
+      const resultItem = document.createElement('li');
+      resultItem.textContent = `${candidate.name}: ${candidate.voteCount.toString()} votes`;
+      resultsElement.appendChild(resultItem);
+
+      // Create new option element for each candidate and add to the dropdown
+      const optionElement = document.createElement('option');
+      optionElement.value = candidate.id.toString();
+      optionElement.textContent = candidate.name;
+      voteOptionElement.appendChild(optionElement);
   }
 }
+
 
 // Update this with your voting contract's ABI
 const votingABI = [
@@ -66,6 +92,25 @@ const votingABI = [
     "payable": false,
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "_candidateId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
+      }
+    ],
+    "name": "CandidateAdded",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -177,6 +222,21 @@ const votingABI = [
     ],
     "payable": false,
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
+      }
+    ],
+    "name": "addCandidate",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
