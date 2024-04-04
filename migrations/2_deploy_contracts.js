@@ -1,3 +1,4 @@
+//2_deploy_contracts.js
 var TodoList = artifacts.require("./TodoList.sol");
 
 module.exports = function(deployer) {
