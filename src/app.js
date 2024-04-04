@@ -1,144 +1,197 @@
-//below is app.js
-// let contractAddress;
+// app.js
+const contractAddress = '0xA31C31d3027cfcFC0b249d68C425386D2Af4ccb9';
 
-// async function fetchContractAddress() {
-//     const response = await fetch('ContractAddress.json');
-//     const data = await response.json();
-//     return data.TodoListAddress;
-// }
-
-// document.addEventListener('DOMContentLoaded', async () => {
-//     contractAddress = await fetchContractAddress();
-//     init(contractAddress);
-// });
-
-document.addEventListener('DOMContentLoaded', () => {
-    init();
+document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof ethereum !== 'undefined') {
+        ethereum.on('accountsChanged', function (accounts) {
+            console.log('Account changed:', accounts[0]);
+            window.location.reload(); // Reload the interface with the first account
+        });
+    }
+    await init();
 });
 
 async function init() {
-    if (typeof window.ethereum !== 'undefined') {
-        try {
-            await ethereum.request({ method: 'eth_requestAccounts' });
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const contract = new ethers.Contract(todoListAddress, todoListABI, signer);
+    if (typeof ethereum !== 'undefined') {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, votingABI, signer);
 
-            document.getElementById('createTaskBtn').addEventListener('click', async () => {
-                const taskInput = document.getElementById('newTask');
-                const task = taskInput.value.trim();
-                if (task) {
-                    await createTask(task, contract);
-                    taskInput.value = ''; // Clear input after task creation
-                } else {
-                    alert('Please enter a task.');
-                }
-            });
+        document.getElementById('voteButton').addEventListener('click', async () => {
+            const selectedCandidateId = parseInt(document.getElementById('voteOption').value);
+            await voteForCandidate(selectedCandidateId, contract);
+        });
 
-            await displayTasks(contract);
-        } catch (error) {
-            console.error(error);
-            alert('An error occurred with Ethereum interaction.');
-        }
+        await displayResults(contract); // Display results at initialization
     } else {
-        alert('Please install MetaMask to use this feature.');
+        console.error("Ethereum object doesn't exist!");
     }
 }
 
-async function createTask(taskContent, contract) {
-    try {
-        const tx = await contract.createTask(taskContent);
-        await tx.wait(); // Wait for the transaction to be mined
-        console.log('Task created successfully.');
-        await displayTasks(contract); // Refresh the tasks list
-    } catch (error) {
-        console.error('Error creating task:', error);
-        alert('Failed to create a task.');
-    }
+async function voteForCandidate(candidateId, contract) {
+  console.log("Attempting to cast vote for candidate ID:", candidateId);
+  try {
+      const tx = await contract.vote(candidateId);
+      await tx.wait();
+      console.log('Vote cast successfully.');
+      await displayResults(contract);
+  } catch (error) {
+      console.error('Error casting vote:', error);
+      alert('Failed to cast vote.');
+  }
 }
 
-async function displayTasks(contract) {
-    try {
-        const taskCount = await contract.taskCount();
-        const taskCountNumber = taskCount.toNumber();
+// Define the displayResults function
+async function displayResults(contract) {
+  const resultsElement = document.getElementById('votingResults');
+  resultsElement.innerHTML = ''; // Clear previous results
 
-        const taskListElement = document.getElementById('taskList');
-        taskListElement.innerHTML = ''; // Clear existing tasks
+  const candidatesCount = await contract.candidatesCount();
+  console.log("Candidates Count:", candidatesCount.toNumber());
 
-        for (let i = 1; i <= taskCountNumber; i++) {
-            const task = await contract.tasks(i);
-            const taskElement = document.createElement('li');
-            taskElement.textContent = `Task ${task.id.toNumber()}: ${task.content} - Completed: ${task.completed}`;
-            taskListElement.appendChild(taskElement);
-        }
-    } catch (error) {
-        console.error('Error displaying tasks:', error);
-        alert('Failed to display tasks.');
-    }
+  for (let i = 1; i <= candidatesCount.toNumber(); i++) {
+      const candidate = await contract.candidates(i);
+      console.log(`Candidate ${i}:`, candidate);
+      const listItem = document.createElement('li');
+      listItem.textContent = `${candidate.name}: ${candidate.voteCount.toNumber()} votes`;
+      resultsElement.appendChild(listItem);
+  }
 }
 
-const todoListABI = [
-    {
-      "inputs": [],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "inputs": [],
-      "name": "taskCount",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "tasks",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "id",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "content",
-          "type": "string"
-        },
-        {
-          "internalType": "bool",
-          "name": "completed",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "_content",
-          "type": "string"
-        }
-      ],
-      "name": "createTask",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    }
+// Update this with your voting contract's ABI
+const votingABI = [
+  {
+    "inputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "_voter",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "_candidateId",
+        "type": "uint256"
+      }
+    ],
+    "name": "Voted",
+    "type": "event"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "candidates",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "voteCount",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "candidatesCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "hasVoted",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "votes",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "candidateId",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_candidateId",
+        "type": "uint256"
+      }
+    ],
+    "name": "vote",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ];
-
-const todoListAddress = "0x41e29bff4eC71979CE0C6FB87d8E9d4176d6Fb3f"; // Replace with your contract's address
-

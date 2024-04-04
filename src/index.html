@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Todo List DApp</title>
+    <title>Voting DApp</title>
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
 </head>
 <body>
-    <h1>Todo List</h1>
-    <input id="newTask" type="text" placeholder="Enter task...">
-    <button id="createTaskBtn">Create Task</button>
+    <h1>Voting Application</h1>
+    <select id="voteOption">
+        <option value="1">Candidate 1</option>
+        <option value="2">Candidate 2</option>
+        <!-- Add more candidates as needed -->
+    </select>
+    <button id="voteButton">Vote</button>
 
-    <h2>Tasks</h2>
-    <ul id="taskList"></ul>
-    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
-    <script src="app.js"></script>
+    <h2>Voting Results</h2>
+    <ul id="votingResults"></ul>
+    <script src="app.js" type="application/javascript"></script>
 </body>
 </html>
