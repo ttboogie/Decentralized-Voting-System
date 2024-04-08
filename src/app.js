@@ -1,4 +1,4 @@
-const contractAddress = '0x54E9DFD9fF276B30ce82e8A7797236DEb2645aDA';
+const contractAddress = '0x664821C1635b00D83FC74f41D3eDCA6c9d8A7a30';
 
 let contract; // Global contract instance
 let signer; // Global signer
